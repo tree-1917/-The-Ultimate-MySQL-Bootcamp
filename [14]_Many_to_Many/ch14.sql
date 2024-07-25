@@ -1,23 +1,31 @@
 -- TV Show Reviewing Application --
+-- Create database
 CREATE DATABASE tv_db;
 
+-- Use the created database
 USE tv_db;
 
+-- Create the 'reviewers' table
 CREATE TABLE reviewers (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    -- Unique identifier for each reviewer
     f_name TEXT NOT NULL,
-    l_name TEXT NOT NULL
+    -- First name of the reviewer
+    l_name TEXT NOT NULL -- Last name of the reviewer
 );
 
+-- Create the 'series' table
 CREATE TABLE series (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    -- Unique identifier for each series
     title TEXT NOT NULL,
+    -- Title of the series
     released_year INT,
-    -- Changed to INT for more flexibility
-    genre TEXT NOT NULL -- Corrected from gener to genre
+    -- Year the series was released
+    genre TEXT NOT NULL -- Genre of the series
 );
 
--- Insert series -- 
+-- Insert data into the 'series' table
 INSERT INTO
     series (title, released_year, genre)
 VALUES
@@ -36,7 +44,7 @@ VALUES
     ('Seinfeld', 1989, 'Comedy'),
     ('Stranger Things', 2016, 'Drama');
 
--- Insert reviewers -- 
+-- Insert data into the 'reviewers' table
 INSERT INTO
     reviewers (f_name, l_name)
 VALUES
@@ -48,16 +56,22 @@ VALUES
     ('Pinkie', 'Petit'),
     ('Marlon', 'Crafford');
 
--- Reviews -- 
-CREATE TABLE c (
+-- Create the 'reviews' table
+CREATE TABLE reviews (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    -- Unique identifier for each review
     rating FLOAT,
+    -- Rating given in the review
     reviewer_id INT,
+    -- Foreign key to the 'reviewers' table
     series_id INT,
+    -- Foreign key to the 'series' table
     FOREIGN KEY (reviewer_id) REFERENCES reviewers(id),
-    FOREIGN KEY (series_id) REFERENCES series(id)
+    -- Reference to 'reviewers' table
+    FOREIGN KEY (series_id) REFERENCES series(id) -- Reference to 'series' table
 );
 
+-- Insert data into the 'reviews' table
 INSERT INTO
     reviews (series_id, reviewer_id, rating)
 VALUES
@@ -109,72 +123,86 @@ VALUES
     (14, 3, 8.9),
     (14, 4, 8.9);
 
+-- Query to view all reviews
 SELECT
     *
 FROM
     reviews;
 
--- #1 -- 
-select
+-- #1: Retrieve the series title and its corresponding rating
+SELECT
     title,
     rating
-from
+FROM
     series
-    join reviews on series.id = reviews.series_id;
+    JOIN reviews ON series.id = reviews.series_id;
 
--- #2 -- 
-select
+-- #2: Retrieve the average rating for each series, rounded to 2 decimal places, sorted by highest average rating
+SELECT
     title,
-    round(AVG(rating), 2) as avg_rating
-from
+    ROUND(AVG(rating), 2) AS avg_rating
+FROM
     series
-    join reviews on series.id = reviews.series_id
-group by
+    JOIN reviews ON series.id = reviews.series_id
+GROUP BY
     title
-order by
+ORDER BY
     avg_rating DESC;
 
--- #3 --
-select
+-- #3: Retrieve the first and last name of reviewers and their ratings
+SELECT
     f_name,
     l_name,
     rating
-from
+FROM
     reviewers
-    join reviews on reviewers.id = reviews.reviewer_id;
+    JOIN reviews ON reviewers.id = reviews.reviewer_id;
 
--- #3 --
-select
-    f_name,
-    l_name,
-    round(avg(rating), 2) as avg_rating
-from
-    reviewers
-    join reviews on reviewers.id = reviews.reviewer_id
-group by
-    f_name,
-    l_name
-order by
-    avg_rating desc;
-
--- #4 -- 
-select
+-- #4: Retrieve the title and rating for series that do not have any reviews
+SELECT
     title,
     rating
-from
+FROM
     series
-    left join reviews on series.id = reviews.series_id
-where
-    reviews.series_id is NULL;
+    LEFT JOIN reviews ON series.id = reviews.series_id
+WHERE
+    reviews.series_id IS NULL;
 
--- #5 --
-select
+-- #5: Retrieve the average rating for each genre, rounded to 3 decimal places
+SELECT
     genre,
-    round(avg(rating), 3) as avg_rating
-from
+    ROUND(AVG(rating), 3) AS avg_rating
+FROM
     series
-    join reviews on series.id = reviews.series_id
-group by
+    JOIN reviews ON series.id = reviews.series_id
+GROUP BY
     genre;
 
--- #6 --
+-- #6: Retrieve reviewer statistics including count, min, max, and average rating, with status based on rating count
+SELECT
+    f_name,
+    l_name,
+    COUNT(rating) AS COUNT,
+    IFNULL(ROUND(MIN(rating), 3), 0) AS MIN,
+    IFNULL(ROUND(MAX(rating), 3), 0) AS MAX,
+    IFNULL(ROUND(AVG(rating), 3), 0) AS AVG,
+    CASE
+        WHEN COUNT(rating) = 0 THEN 'INACTIVE'
+        ELSE 'ACTIVE'
+    END AS Status
+FROM
+    reviewers
+    LEFT JOIN reviews ON reviewers.id = reviews.reviewer_id
+GROUP BY
+    f_name,
+    l_name;
+
+-- #7: Retrieve the title, rating, and full name of reviewers for each review
+SELECT
+    title,
+    rating,
+    CONCAT(f_name, ' ', l_name) AS full_name
+FROM
+    reviews
+    JOIN series ON series.id = reviews.series_id
+    JOIN reviewers ON reviews.reviewer_id = reviewers.id;
